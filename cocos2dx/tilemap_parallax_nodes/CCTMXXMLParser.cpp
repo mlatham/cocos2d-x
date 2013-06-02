@@ -125,10 +125,10 @@ CCRect CCTMXTilesetInfo::rectForGID(unsigned int gid)
 
 // implementation CCTMXMapInfo
 
-CCTMXMapInfo * CCTMXMapInfo::formatWithTMXFile(const char *tmxFile)
+CCTMXMapInfo * CCTMXMapInfo::formatWithTMXFile(const char *tmxFile, bool applyContentScale)
 {
     CCTMXMapInfo *pRet = new CCTMXMapInfo();
-    if(pRet->initWithTMXFile(tmxFile))
+    if(pRet->initWithTMXFile(tmxFile, applyContentScale))
     {
         pRet->autorelease();
         return pRet;
@@ -137,10 +137,10 @@ CCTMXMapInfo * CCTMXMapInfo::formatWithTMXFile(const char *tmxFile)
     return NULL;
 }
 
-CCTMXMapInfo * CCTMXMapInfo::formatWithXML(const char* tmxString, const char* resourcePath)
+CCTMXMapInfo * CCTMXMapInfo::formatWithXML(const char* tmxString, const char* resourcePath, bool applyContentScale)
 {
     CCTMXMapInfo *pRet = new CCTMXMapInfo();
-    if(pRet->initWithXML(tmxString, resourcePath))
+    if(pRet->initWithXML(tmxString, resourcePath, applyContentScale))
     {
         pRet->autorelease();
         return pRet;
@@ -149,7 +149,7 @@ CCTMXMapInfo * CCTMXMapInfo::formatWithXML(const char* tmxString, const char* re
     return NULL;
 }
 
-void CCTMXMapInfo::internalInit(const char* tmxFileName, const char* resourcePath)
+void CCTMXMapInfo::internalInit(const char* tmxFileName, const char* resourcePath, bool applyContentScale)
 {
     m_pTilesets = CCArray::create();
     m_pTilesets->retain();
@@ -179,16 +179,17 @@ void CCTMXMapInfo::internalInit(const char* tmxFileName, const char* resourcePat
     m_nLayerAttribs = TMXLayerAttribNone;
     m_nParentElement = TMXPropertyNone;
     m_uCurrentFirstGID = 0;
+	m_bApplyContentScale = applyContentScale;
 }
-bool CCTMXMapInfo::initWithXML(const char* tmxString, const char* resourcePath)
+bool CCTMXMapInfo::initWithXML(const char* tmxString, const char* resourcePath, bool applyContentScale)
 {
-    internalInit(NULL, resourcePath);
+    internalInit(NULL, resourcePath, applyContentScale);
     return parseXMLString(tmxString);
 }
 
-bool CCTMXMapInfo::initWithTMXFile(const char *tmxFile)
+bool CCTMXMapInfo::initWithTMXFile(const char *tmxFile, bool applyContentScale)
 {
-    internalInit(tmxFile, NULL);
+    internalInit(tmxFile, NULL, applyContentScale);
     return parseXMLFile(m_sTMXFileName.c_str());
 }
 
@@ -479,6 +480,11 @@ void CCTMXMapInfo::startElement(void *ctx, const char *name, const char **atts)
         {
             tileset->m_sSourceImage = m_sResources + (m_sResources.size() ? "/" : "") + imagename;
         }
+		
+		if (m_bApplyContentScale)
+		{
+			CCLOG("Tileset image: %s => %s", imagename.c_str(), tileset->m_sSourceImage.c_str());
+		}
     } 
     else if (elementName == "data")
     {

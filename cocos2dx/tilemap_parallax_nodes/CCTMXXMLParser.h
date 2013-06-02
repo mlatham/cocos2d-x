@@ -174,13 +174,13 @@ public:
     CCTMXMapInfo();
     virtual ~CCTMXMapInfo();
     /** creates a TMX Format with a tmx file */
-    static CCTMXMapInfo * formatWithTMXFile(const char *tmxFile);
+    static CCTMXMapInfo * formatWithTMXFile(const char *tmxFile, bool applyContentScale = true);
     /** creates a TMX Format with an XML string and a TMX resource path */
-    static CCTMXMapInfo * formatWithXML(const char* tmxString, const char* resourcePath);
+    static CCTMXMapInfo * formatWithXML(const char* tmxString, const char* resourcePath, bool applyContentScale = true);
     /** initializes a TMX format with a  tmx file */
-    bool initWithTMXFile(const char *tmxFile);
+    bool initWithTMXFile(const char *tmxFile, bool applyContentScale = true);
     /** initializes a TMX format with an XML string and a TMX resource path */
-    bool initWithXML(const char* tmxString, const char* resourcePath);
+    bool initWithXML(const char* tmxString, const char* resourcePath, bool applyContentScale = true);
     /** initializes parsing of an XML file, either a tmx (Map) file or tsx (Tileset) file */
     bool parseXMLFile(const char *xmlFilename);
     /* initializes parsing of an XML string, either a tmx (Map) string or tsx (Tileset) string */
@@ -199,7 +199,7 @@ public:
     inline const char* getTMXFileName(){ return m_sTMXFileName.c_str(); }
     inline void setTMXFileName(const char *fileName){ m_sTMXFileName = fileName; }
 private:
-    void internalInit(const char* tmxFileName, const char* resourcePath);
+    void internalInit(const char* tmxFileName, const char* resourcePath, bool applyContentScale);
 protected:
     //! tmx filename
     std::string m_sTMXFileName;
@@ -210,6 +210,7 @@ protected:
     //! tile properties
     CCDictionary* m_pTileProperties;
     unsigned int m_uCurrentFirstGID;
+	bool m_bApplyContentScale;
 };
 
 // end of tilemap_parallax_nodes group
