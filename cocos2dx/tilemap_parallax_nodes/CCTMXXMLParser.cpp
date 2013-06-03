@@ -29,6 +29,7 @@ THE SOFTWARE.
 #include <sstream>
 #include "CCTMXXMLParser.h"
 #include "CCTMXTiledMap.h"
+#include "CCDirector.h"
 #include "ccMacros.h"
 #include "platform/CCFileUtils.h"
 #include "support/zip_support/ZipUtils.h"
@@ -159,6 +160,7 @@ void CCTMXMapInfo::internalInit(const char* tmxFileName, const char* resourcePat
 
     if (tmxFileName != NULL)
     {
+		// resolve the TMX filename
         m_sTMXFileName = CCFileUtils::sharedFileUtils()->fullPathForFilename(tmxFileName);
     }
     
@@ -345,18 +347,26 @@ void CCTMXMapInfo::startElement(void *ctx, const char *name, const char **atts)
         else
             CCLOG("cocos2d: TMXFomat: Unsupported orientation: %d", pTMXMapInfo->getOrientation());
 
-        CCSize s;
-        s.width = (float)atof(valueForKey("width", attributeDict));
-        s.height = (float)atof(valueForKey("height", attributeDict));
-        pTMXMapInfo->setMapSize(s);
+        CCSize sizeInTiles;
+        sizeInTiles.width = (float)atof(valueForKey("width", attributeDict));
+        sizeInTiles.height = (float)atof(valueForKey("height", attributeDict));
+        pTMXMapInfo->setMapSize(sizeInTiles);
 
-        s.width = (float)atof(valueForKey("tilewidth", attributeDict));
-        s.height = (float)atof(valueForKey("tileheight", attributeDict));
-        pTMXMapInfo->setTileSize(s);
+		CCSize tileSize;
+        tileSize.width = (float)atof(valueForKey("tilewidth", attributeDict));
+        tileSize.height = (float)atof(valueForKey("tileheight", attributeDict));
+		
+		// apply content scale if specified
+		if (m_bApplyContentScale)
+		{
+			tileSize = CC_SIZE_POINTS_TO_PIXELS(tileSize);
+		}
+		
+        pTMXMapInfo->setTileSize(tileSize);
 
         // The parent element is now "map"
         pTMXMapInfo->setParentElement(TMXPropertyMap);
-    } 
+    }
     else if (elementName == "tileset") 
     {
         // If this is an external tileset then start parsing that
@@ -392,12 +402,25 @@ void CCTMXMapInfo::startElement(void *ctx, const char *name, const char **atts)
                 tileset->m_uFirstGid = m_uCurrentFirstGID;
                 m_uCurrentFirstGID = 0;
             }
-            tileset->m_uSpacing = (unsigned int)atoi(valueForKey("spacing", attributeDict));
-            tileset->m_uMargin = (unsigned int)atoi(valueForKey("margin", attributeDict));
-            CCSize s;
-            s.width = (float)atof(valueForKey("tilewidth", attributeDict));
-            s.height = (float)atof(valueForKey("tileheight", attributeDict));
-            tileset->m_tTileSize = s;
+            
+			unsigned int spacing = (unsigned int)atoi(valueForKey("spacing", attributeDict));
+			unsigned int margin = (unsigned int)atoi(valueForKey("margin", attributeDict));
+			
+			CCSize tileSize;
+            tileSize.width = (float)atof(valueForKey("tilewidth", attributeDict));
+            tileSize.height = (float)atof(valueForKey("tileheight", attributeDict));
+			
+			// apply content scale if specified
+			if (m_bApplyContentScale)
+			{
+				spacing = spacing * CC_CONTENT_SCALE_FACTOR();
+				margin = margin * CC_CONTENT_SCALE_FACTOR();
+				tileSize = CC_SIZE_POINTS_TO_PIXELS(tileSize);
+			}
+			
+			tileset->m_uSpacing = spacing;
+            tileset->m_uMargin = margin;
+            tileset->m_tTileSize = tileSize;
 
             pTMXMapInfo->getTilesets()->addObject(tileset);
             tileset->release();
@@ -471,15 +494,8 @@ void CCTMXMapInfo::startElement(void *ctx, const char *name, const char **atts)
         // build full path
         std::string imagename = valueForKey("source", attributeDict);
 
-        if (m_sTMXFileName.find_last_of("/") != string::npos)
-        {
-            string dir = m_sTMXFileName.substr(0, m_sTMXFileName.find_last_of("/") + 1);
-            tileset->m_sSourceImage = dir + imagename;
-        }
-        else 
-        {
-            tileset->m_sSourceImage = m_sResources + (m_sResources.size() ? "/" : "") + imagename;
-        }
+		// resolve the image path using the typical search rules.
+		tileset->m_sSourceImage = CCFileUtils::sharedFileUtils()->fullPathForFilename(imagename.c_str());
 		
 		if (m_bApplyContentScale)
 		{
